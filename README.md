@@ -1,3 +1,9 @@
+# Character Chat Tree — 2.3.0
+
+Use the pencil button beside any chat or branch to rename it without opening it. Enter saves, Escape or Cancel discards the draft. Save errors remain visible so you can retry. Your active chat stays unchanged.
+
+Update from the same GitHub repository, then reload Lumiverse. No uninstall or settings reset is needed.
+
 # Character Chat Tree
 
 An independent, unofficial extension compatible with Lumiverse.
@@ -59,3 +65,5 @@ npm run build
 ```
 
 Built against Lumiverse's Spindle API and `lumiverse-spindle-types` 0.6.12.
+
+

@@ -1,0 +1,14 @@
+{
+  "name": "character-chat-tree",
+  "version": "2.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/rename.test.mjs && bun test tests/model.test.ts",
+    "build": "bun build ./src/frontend.ts --outfile ./frontend.js --target browser --format esm"
+  },
+  "devDependencies": {
+    "linkedom": "0.18.14"
+  }
+}
+

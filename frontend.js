@@ -1,4 +1,4 @@
-// src/model.ts
+// work/chat-tree-rename/src/model.ts
 function treeSize(node) {
   return 1 + node.children.reduce((total, child) => total + treeSize(child), 0);
 }
@@ -14,7 +14,7 @@ function filterForest(forest, rawQuery) {
   return forest.map(visit).filter((node) => node !== null);
 }
 
-// src/frontend.ts
+// work/chat-tree-rename/src/frontend.ts
 var ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="4" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="20" r="2"/><path d="M6 6v6a4 4 0 0 0 4 4h2"/><path d="M6 12h6a4 4 0 0 0 4-4"/><path d="m15 14 3 3-3 3"/></svg>`;
 var CSS = `
   .cct-panel{display:flex;flex-direction:column;gap:10px;padding-bottom:8px}
@@ -24,11 +24,12 @@ var CSS = `
   .cct-refresh:hover,.cct-toggle-all:hover{border-color:var(--lumiverse-border-hover);color:var(--lumiverse-text)}.cct-refresh:disabled,.cct-toggle-all:disabled{opacity:.5;cursor:not-allowed}
   .cct-summary{font-size:11px;color:var(--lumiverse-text-dim);padding:0 2px}.cct-list{display:flex;flex-direction:column;gap:6px}
   .cct-node-wrap{display:flex;flex-direction:column;gap:5px}.cct-children{display:flex;flex-direction:column;gap:5px;margin-left:12px;padding-left:12px;border-left:1px solid var(--lumiverse-border)}
-  .cct-node{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;align-items:center;width:100%;padding:8px 9px;border:1px solid var(--lumiverse-border);border-radius:8px;background:var(--lumiverse-bg-elevated);color:var(--lumiverse-text)}
+  .cct-node{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;padding:8px 9px;border:1px solid var(--lumiverse-border);border-radius:8px;background:var(--lumiverse-bg-elevated);color:var(--lumiverse-text)}
   .cct-node:hover{border-color:var(--lumiverse-border-hover);background:var(--lumiverse-fill-subtle)}.cct-node[data-current="true"]{border-color:var(--lumiverse-primary-050);background:var(--lumiverse-primary-010)}
   .cct-branch-toggle,.cct-glyph{display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:6px;background:var(--lumiverse-fill-subtle);color:var(--lumiverse-text-muted);font:inherit;font-size:13px;padding:0}.cct-branch-toggle{cursor:pointer}.cct-branch-toggle:hover{background:var(--lumiverse-primary-020);color:var(--lumiverse-primary)}.cct-chevron{display:inline-block;transition:transform .15s ease}.cct-branch-toggle[aria-expanded="true"] .cct-chevron{transform:rotate(90deg)}
   .cct-open{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;min-width:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.cct-copy{min-width:0;display:flex;flex-direction:column;gap:2px}.cct-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:500}.cct-meta{font-size:10.5px;color:var(--lumiverse-text-dim)}
   .cct-here{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--lumiverse-primary);background:var(--lumiverse-primary-020);padding:2px 5px;border-radius:4px}.cct-empty{padding:42px 12px;text-align:center;color:var(--lumiverse-text-muted);font-size:12px;line-height:1.5}.cct-error{color:var(--lumiverse-danger,#d66)}
+  .cct-rename{display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--lumiverse-border);border-radius:6px;background:transparent;color:var(--lumiverse-text-muted);font:inherit;font-size:16px;cursor:pointer}.cct-rename:hover{color:var(--lumiverse-primary);border-color:var(--lumiverse-primary)}.cct-rename:disabled{opacity:.4;cursor:default}.cct-rename-editor{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0}.cct-rename-input{flex:1 1 140px;min-width:0;width:100%;border:1px solid var(--lumiverse-primary);border-radius:6px;background:var(--lumiverse-bg);color:var(--lumiverse-text);font:inherit;font-size:12px;padding:7px 8px}.cct-rename-save,.cct-rename-cancel{border:1px solid var(--lumiverse-border);border-radius:6px;background:var(--lumiverse-bg);color:var(--lumiverse-text);font:inherit;font-size:11px;padding:6px 9px;cursor:pointer}.cct-rename-save{border-color:var(--lumiverse-primary);color:var(--lumiverse-primary)}.cct-rename-save:disabled,.cct-rename-cancel:disabled{opacity:.5;cursor:default}.cct-rename-error{flex-basis:100%;font-size:11px;color:var(--lumiverse-danger,#d66)}
 `;
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -57,14 +58,15 @@ function readActiveContext(ctx) {
     return { chatId: null, characterId: null };
   }
 }
-async function fetchJson(path, timeoutMs = 5000) {
+async function fetchJson(path, timeoutMs = 5000, init = {}) {
   const controller = new AbortController;
   const timer = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(path, {
       method: "GET",
       credentials: "same-origin",
-      headers: { Accept: "application/json" },
+      ...init,
+      headers: { Accept: "application/json", ...init.body ? { "Content-Type": "application/json" } : {}, ...init.headers },
       signal: controller.signal
     });
     if (!response.ok)
@@ -166,6 +168,10 @@ function setup(base) {
   let error = "";
   let loadGeneration = 0;
   const collapsedIds = new Set;
+  let renameEdit = null;
+  let renameRevision = 0;
+  let destroyed = false;
+  const renamedNames = new Map;
   disposers.push(ctx.dom.addStyle(CSS));
   const tab = ctx.ui.registerDrawerTab({
     id: "current-character-chats-v21",
@@ -201,6 +207,46 @@ function setup(base) {
     if (result instanceof Promise)
       result.catch(() => window.location.assign(`/chat/${encodeURIComponent(chatId)}`));
   };
+  const applyRenamedNames = (nodes, since) => {
+    for (const node of nodes) {
+      const rename = renamedNames.get(node.id);
+      if (rename && rename.revision > since)
+        node.name = rename.name;
+      applyRenamedNames(node.children, since);
+    }
+  };
+  const saveRename = async () => {
+    const edit = renameEdit;
+    if (!edit || edit.busy)
+      return;
+    const name = edit.value.trim();
+    if (!name) {
+      edit.error = "Enter a chat name.";
+      render();
+      return;
+    }
+    edit.busy = true;
+    edit.error = "";
+    render();
+    try {
+      const result = await fetchJson(`/api/v1/chats/${encodeURIComponent(edit.id)}`, 5000, { method: "PUT", body: JSON.stringify({ name }) });
+      if (destroyed)
+        return;
+      const savedName = typeof result?.name === "string" && result.name.trim() ? result.name : name;
+      renamedNames.set(edit.id, { name: savedName, revision: ++renameRevision });
+      applyRenamedNames(forest, renameRevision - 1);
+      if (renameEdit === edit)
+        renameEdit = null;
+    } catch (reason) {
+      if (destroyed)
+        return;
+      if (renameEdit === edit) {
+        edit.busy = false;
+        edit.error = reason instanceof Error ? reason.message : "Could not rename chat. Try again.";
+      }
+    }
+    render();
+  };
   const renderNode = (node) => {
     const wrap = element("div", "cct-node-wrap");
     const row = element("div", "cct-node");
@@ -234,6 +280,67 @@ function setup(base) {
     if (node.id === activeChatId)
       open.appendChild(element("span", "cct-here", "Here"));
     row.appendChild(open);
+    const rename = element("button", "cct-rename", "✎");
+    rename.type = "button";
+    rename.title = "Rename chat";
+    rename.setAttribute("aria-label", `Rename ${node.name || "Untitled chat"}`);
+    rename.disabled = Boolean(renameEdit?.busy);
+    rename.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      renameEdit = { id: node.id, characterId: activeCharacterId, value: node.name || "", busy: false, error: "" };
+      render();
+      const input = list.querySelector(".cct-rename-input");
+      input?.focus();
+      input?.select();
+    });
+    row.appendChild(rename);
+    if (renameEdit?.id === node.id && renameEdit.characterId === activeCharacterId) {
+      const edit = renameEdit, editor = element("div", "cct-rename-editor"), input = element("input", "cct-rename-input");
+      input.type = "text";
+      input.value = edit.value;
+      input.disabled = edit.busy;
+      input.setAttribute("aria-label", `New name for ${node.name || "Untitled chat"}`);
+      const save = element("button", "cct-rename-save", edit.busy ? "Saving…" : "Save"), cancel = element("button", "cct-rename-cancel", "Cancel");
+      save.type = cancel.type = "button";
+      save.disabled = edit.busy || !edit.value.trim();
+      cancel.disabled = edit.busy;
+      input.addEventListener("input", () => {
+        edit.value = input.value;
+        save.disabled = edit.busy || !edit.value.trim();
+      });
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.stopPropagation();
+          saveRename();
+        }
+        if (event.key === "Escape" && !edit.busy) {
+          event.preventDefault();
+          event.stopPropagation();
+          renameEdit = null;
+          render();
+        }
+      });
+      save.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        saveRename();
+      });
+      cancel.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        renameEdit = null;
+        render();
+      });
+      editor.append(input, save, cancel);
+      if (edit.error) {
+        const notice = element("div", "cct-rename-error", edit.error);
+        notice.setAttribute("role", "alert");
+        editor.append(notice);
+      }
+      row.appendChild(editor);
+    }
     wrap.appendChild(row);
     if (hasChildren && expanded) {
       const children = element("div", "cct-children");
@@ -259,18 +366,18 @@ function setup(base) {
     toggleAll.disabled = loading || branchIds.length === 0;
     list.replaceChildren();
     if (loading) {
-      summary.textContent = "Character Chat Tree v2.2.0";
+      summary.textContent = "Character Chat Tree v2.3.0";
       list.appendChild(element("div", "cct-empty", "Contacting Lumiverse…"));
       return;
     }
     if (error) {
-      summary.textContent = "Character Chat Tree v2.2.0";
+      summary.textContent = "Character Chat Tree v2.3.0";
       list.appendChild(element("div", "cct-empty cct-error", `${error}. Press Refresh to try again.`));
       return;
     }
     const filtered = filterForest(forest, search.value);
     const visible = filtered.reduce((total, root) => total + treeSize(root), 0);
-    summary.textContent = search.value.trim() ? `${visible} of ${allCount} chats shown` : `${allCount} chats for this character${partialTrees ? " · some branch trees unavailable" : ""} · v2.2.0`;
+    summary.textContent = search.value.trim() ? `${visible} of ${allCount} chats shown` : `${allCount} chats for this character${partialTrees ? " · some branch trees unavailable" : ""} · v2.3.0`;
     if (!filtered.length) {
       list.appendChild(element("div", "cct-empty", allCount ? "No chats match that search." : "No chats found for this character."));
       return;
@@ -280,13 +387,16 @@ function setup(base) {
   };
   const load = async () => {
     const generation = ++loadGeneration;
+    const startedAtRenameRevision = renameRevision;
+    if (renameEdit && renameEdit.characterId !== activeCharacterId)
+      renameEdit = null;
     if (!activeCharacterId) {
       loading = false;
       error = "";
       forest = [];
       allCount = 0;
       tab.setBadge(null);
-      summary.textContent = "Character Chat Tree v2.2.0";
+      summary.textContent = "Character Chat Tree v2.3.0";
       list.replaceChildren(element("div", "cct-empty", "Open a character chat first."));
       return;
     }
@@ -299,6 +409,7 @@ function setup(base) {
       if (generation !== loadGeneration || characterId !== activeCharacterId)
         return;
       forest = result.forest;
+      applyRenamedNames(forest, startedAtRenameRevision);
       allCount = result.count;
       partialTrees = result.partial;
       tab.setBadge(allCount ? String(allCount) : null);
@@ -364,6 +475,7 @@ function setup(base) {
   }
   load();
   return () => {
+    destroyed = true;
     loadGeneration += 1;
     for (const dispose of disposers.reverse()) {
       try {
@@ -375,3 +487,4 @@ function setup(base) {
 export {
   setup
 };
+

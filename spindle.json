@@ -1,5 +1,5 @@
 {
-  "version": "2.2.0",
+  "version": "2.3.0",
   "name": "Character Chat Tree",
   "identifier": "character_chat_tree",
   "author": "Lumiverse community extension",
@@ -13,3 +13,5 @@
   "github": "https://github.com/clovergirl99/lumiverse-character-chat-tree",
   "homepage": "https://github.com/clovergirl99/lumiverse-character-chat-tree"
 }
+
+
